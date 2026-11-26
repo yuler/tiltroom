@@ -52,6 +52,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cc.yuler.tiltroom.watchkitapp
         PRODUCT_NAME: TiltroomWatch
+        PRODUCT_MODULE_NAME: Tiltroom
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_FILE: Tiltroom/Info.plist
         GENERATE_INFOPLIST_FILE: NO
