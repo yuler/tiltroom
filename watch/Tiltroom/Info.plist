@@ -28,8 +28,6 @@
 	<string>Tiltroom 读取手腕重力倾角，用于瞄准重力快门的滑落方向。</string>
 	<key>WKApplication</key>
 	<true/>
-	<key>WKRunsIndependentlyOfCompanionApp</key>
-	<true/>
 	<key>WKSupportsAlwaysOnDisplay</key>
 	<true/>
 	<key>WKWatchOnly</key>
