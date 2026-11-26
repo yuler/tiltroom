@@ -128,6 +128,11 @@ cmd_init_app() {
     --name "$APP_NAME" \
     --platform IOS
 
+  run_cmd asc bundle-ids create \
+    --identifier "${BUNDLE_ID}.watchkitapp" \
+    --name "${APP_NAME} Watch" \
+    --platform IOS
+
   run_cmd asc web apps create \
     --name "$APP_NAME" \
     --bundle-id "$BUNDLE_ID" \
