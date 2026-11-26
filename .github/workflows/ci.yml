@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  script-tests:
+    name: Script & Release Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Test release scripts
+        run: node --test .github/scripts/*.test.mjs
+
+      - name: Check shell scripts syntax
+        run: bash -n scripts/*.sh
+
+  detect-watch:
+    name: Detect watchOS Project
+    runs-on: ubuntu-latest
+    outputs:
+      has_watch_project: ${{ steps.check.outputs.has_watch_project }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          if [ -f "watch/project.yml" ]; then
+            echo "has_watch_project=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_watch_project=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  watch-build:
+    name: watchOS Build & Test
+    needs: detect-watch
+    if: needs.detect-watch.outputs.has_watch_project == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-tags: true
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: ./scripts/watch-xcodegen.sh
+
+      - name: Build for watchOS Simulator
+        run: |
+          xcodebuild \
+            -project watch/Tiltroom.xcodeproj \
+            -scheme Tiltroom \
+            -configuration Debug \
+            -destination 'generic/platform=watchOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
