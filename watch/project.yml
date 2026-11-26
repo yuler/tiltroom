@@ -62,8 +62,13 @@ targets:
         SUPPORTS_MACCATALYST: NO
         TARGETED_DEVICE_FAMILY: "4"
         WATCHOS_DEPLOYMENT_TARGET: "10.0"
-        SKIP_INSTALL: YES
         PROVISIONING_PROFILE_SPECIFIER: "${WATCH_PROFILE_UUID}"
+      configs:
+        # Debug tests install and launch the watch app. Release archives only embed it.
+        Debug:
+          SKIP_INSTALL: NO
+        Release:
+          SKIP_INSTALL: YES
   TiltroomTests:
     type: bundle.unit-test
     platform: watchOS
