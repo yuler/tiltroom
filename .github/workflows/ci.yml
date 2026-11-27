@@ -32,6 +32,30 @@ jobs:
       - name: Check shell scripts syntax
         run: bash -n scripts/*.sh
 
+  web-build:
+    name: Web Typecheck, Test & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install web dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck web
+        run: bun run typecheck
+
+      - name: Test web
+        run: bun run test
+
+      - name: Build web
+        run: bun run build
+
   detect-watch:
     name: Detect watchOS Project
     runs-on: ubuntu-latest
