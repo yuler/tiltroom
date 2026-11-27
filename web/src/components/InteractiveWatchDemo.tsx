@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GyroController } from "@/components/GyroController";
+import { shouldInterceptActivationKey } from "@/components/watchDemoInteraction";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -220,6 +221,9 @@ export function InteractiveWatchDemo() {
       }
 
       if ((e.key === " " || e.key === "Enter") && !busy) {
+        if (!shouldInterceptActivationKey(e.target)) {
+          return;
+        }
         if (mode === "dead") {
           e.preventDefault();
           handleUndo();

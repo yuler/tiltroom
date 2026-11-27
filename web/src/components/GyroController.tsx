@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from "lucide-react";
 import { useRef, useState } from "react";
+import { resolvePointerRelease } from "@/components/watchDemoInteraction";
 import { snapVectorToDirection } from "@/game/engine";
 import { DIRECTION_LABELS, type Direction } from "@/game/levels";
 import { cn } from "@/lib/utils";
@@ -111,20 +112,30 @@ export function GyroController({
     });
   };
 
-  const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+  const finishPointer = (
+    e: React.PointerEvent<HTMLDivElement>,
+    canceled: boolean,
+  ) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== e.pointerId) return;
     dragRef.current = null;
     setDragging(false);
     setPuck({ x: 0, y: 0 });
 
-    if (drag.moved && drag.snapped) {
-      onTrigger(drag.snapped);
-    } else if (!drag.moved && aimDirection) {
-      onTrigger(aimDirection);
+    const outcome = resolvePointerRelease(drag, aimDirection, canceled);
+    if (outcome.action === "trigger") {
+      onTrigger(outcome.dir);
     } else {
       onAimChange(null, { x: 0, y: 0 });
     }
+  };
+
+  const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    finishPointer(e, false);
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    finishPointer(e, true);
   };
 
   const handleSectorClick = (dir: Direction) => {
@@ -156,7 +167,7 @@ export function GyroController({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
-        onPointerCancel={handlePointerEnd}
+        onPointerCancel={handlePointerCancel}
         className={cn(
           "relative flex h-56 w-56 touch-none select-none items-center justify-center rounded-full border border-[#e7c27a]/35 bg-gradient-to-b from-[#fbfaf7] to-[#efeae0] shadow-[inset_0_2px_6px_rgba(255,255,255,0.95),0_16px_38px_rgba(20,17,14,0.08)] transition-shadow",
           dragging
