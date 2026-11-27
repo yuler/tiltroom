@@ -16,14 +16,17 @@ public struct TiltSample: Equatable, Sendable {
 /// so when the Digital Crown is worn on the left we rotate X/Y by 180 degrees to align
 /// with the flipped watchOS screen.
 ///
-/// Asymmetric thresholds make vertical pitch (up/down) comfortable while keeping
-/// the watch face readable, whereas horizontal wrist roll has a wider comfort range.
+/// Asymmetric thresholds keep downward pitch more sensitive than upward pitch so
+/// players can lock `.down` without pitching the watch far enough to trigger
+/// watchOS wrist-down sleep.
 public struct TiltMapper: Sendable {
     public struct Config: Sendable {
         public var enterRoll: Double = 0.24
         public var exitRoll: Double = 0.16
-        public var enterPitch: Double = 0.17
-        public var exitPitch: Double = 0.11
+        public var enterPitchUp: Double = 0.17
+        public var exitPitchUp: Double = 0.11
+        public var enterPitchDown: Double = 0.13
+        public var exitPitchDown: Double = 0.08
         public var axisDominance: Double = 1.15
         public var smoothingAlpha: Double = 0.28
 
@@ -79,6 +82,7 @@ public struct TiltMapper: Sendable {
 
         let dx = smoothX
         let dy = smoothY
+        let pitchEnter = dy > 0 ? config.enterPitchDown : config.enterPitchUp
 
         // Hysteresis: keep current direction until wrist pulls clearly back inside exit threshold.
         if let active = currentDirection {
@@ -86,17 +90,17 @@ public struct TiltMapper: Sendable {
             let activeStrength: Double
             switch active {
             case .right:
-                stillActive = dx > config.exitRoll && (dx / config.enterRoll) >= (abs(dy) / config.enterPitch) * 0.85
+                stillActive = dx > config.exitRoll && (dx / config.enterRoll) >= (abs(dy) / pitchEnter) * 0.85
                 activeStrength = min(1, max(0, dx / (config.enterRoll * 1.8)))
             case .left:
-                stillActive = -dx > config.exitRoll && (-dx / config.enterRoll) >= (abs(dy) / config.enterPitch) * 0.85
+                stillActive = -dx > config.exitRoll && (-dx / config.enterRoll) >= (abs(dy) / pitchEnter) * 0.85
                 activeStrength = min(1, max(0, -dx / (config.enterRoll * 1.8)))
             case .down:
-                stillActive = dy > config.exitPitch && (dy / config.enterPitch) >= (abs(dx) / config.enterRoll) * 0.85
-                activeStrength = min(1, max(0, dy / (config.enterPitch * 1.8)))
+                stillActive = dy > config.exitPitchDown && (dy / config.enterPitchDown) >= (abs(dx) / config.enterRoll) * 0.85
+                activeStrength = min(1, max(0, dy / (config.enterPitchDown * 1.8)))
             case .up:
-                stillActive = -dy > config.exitPitch && (-dy / config.enterPitch) >= (abs(dx) / config.enterRoll) * 0.85
-                activeStrength = min(1, max(0, -dy / (config.enterPitch * 1.8)))
+                stillActive = -dy > config.exitPitchUp && (-dy / config.enterPitchUp) >= (abs(dx) / config.enterRoll) * 0.85
+                activeStrength = min(1, max(0, -dy / (config.enterPitchUp * 1.8)))
             }
             if stillActive {
                 return TiltSample(direction: active, intensity: activeStrength)
@@ -105,7 +109,7 @@ public struct TiltMapper: Sendable {
         }
 
         let normX = abs(dx) / config.enterRoll
-        let normY = abs(dy) / config.enterPitch
+        let normY = abs(dy) / pitchEnter
 
         if normX >= 1.0 && normX >= normY * config.axisDominance {
             let dir: Direction = dx > 0 ? .right : .left
@@ -116,7 +120,7 @@ public struct TiltMapper: Sendable {
         if normY >= 1.0 && normY >= normX * config.axisDominance {
             let dir: Direction = dy > 0 ? .down : .up
             currentDirection = dir
-            return TiltSample(direction: dir, intensity: min(1, abs(dy) / (config.enterPitch * 1.8)))
+            return TiltSample(direction: dir, intensity: min(1, abs(dy) / (pitchEnter * 1.8)))
         }
 
         return TiltSample(direction: nil, intensity: 0)

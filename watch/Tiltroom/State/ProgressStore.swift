@@ -3,10 +3,33 @@ import Foundation
 public struct LevelProgress: Codable, Equatable, Sendable {
     public var currentLevelIndex: Int
     public var bestMovesByLevelId: [Int: Int]
+    public var hasCompletedOnboarding: Bool
 
-    public init(currentLevelIndex: Int = 0, bestMovesByLevelId: [Int: Int] = [:]) {
+    public init(
+        currentLevelIndex: Int = 0,
+        bestMovesByLevelId: [Int: Int] = [:],
+        hasCompletedOnboarding: Bool = false
+    ) {
         self.currentLevelIndex = currentLevelIndex
         self.bestMovesByLevelId = bestMovesByLevelId
+        self.hasCompletedOnboarding = hasCompletedOnboarding
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case currentLevelIndex
+        case bestMovesByLevelId
+        case hasCompletedOnboarding
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let currentLevelIndex = try container.decodeIfPresent(Int.self, forKey: .currentLevelIndex) ?? 0
+        let bestMovesByLevelId = try container.decodeIfPresent([Int: Int].self, forKey: .bestMovesByLevelId) ?? [:]
+        let hasCompletedOnboarding = try container.decodeIfPresent(Bool.self, forKey: .hasCompletedOnboarding)
+            ?? !bestMovesByLevelId.isEmpty
+        self.currentLevelIndex = currentLevelIndex
+        self.bestMovesByLevelId = bestMovesByLevelId
+        self.hasCompletedOnboarding = hasCompletedOnboarding
     }
 }
 
