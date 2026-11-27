@@ -6,6 +6,7 @@ public struct LevelPickerView: View {
     public let bestMovesByLevelId: [Int: Int]
     public let onSelect: (Int) -> Void
     public let onRecalibrate: () -> Void
+    public let onShowGuide: () -> Void
 
     private let gold = Color(red: 0.906, green: 0.761, blue: 0.478)
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 5), count: 5)
@@ -15,23 +16,31 @@ public struct LevelPickerView: View {
         currentIndex: Int,
         bestMovesByLevelId: [Int: Int],
         onSelect: @escaping (Int) -> Void,
-        onRecalibrate: @escaping () -> Void
+        onRecalibrate: @escaping () -> Void,
+        onShowGuide: @escaping () -> Void = {}
     ) {
         self.levels = levels
         self.currentIndex = currentIndex
         self.bestMovesByLevelId = bestMovesByLevelId
         self.onSelect = onSelect
         self.onRecalibrate = onRecalibrate
+        self.onShowGuide = onShowGuide
     }
 
     public var body: some View {
         ScrollView {
             VStack(spacing: 8) {
-                HStack {
+                HStack(spacing: 4) {
                     Text("关卡 \(bestMovesByLevelId.count)/\(levels.count)")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(gold)
-                    Spacer()
+                        .lineLimit(1)
+                    Spacer(minLength: 2)
+                    Button("引导") {
+                        onShowGuide()
+                    }
+                    .font(.system(size: 11, weight: .medium))
+                    .buttonStyle(.bordered)
                     Button("归零") {
                         onRecalibrate()
                     }

@@ -32,6 +32,10 @@ public final class GameController: ObservableObject {
         progress.bestMovesByLevelId.count
     }
 
+    public var hasCompletedOnboarding: Bool {
+        progress.hasCompletedOnboarding
+    }
+
     public init(levels: [LevelSpec] = LevelCatalog.all, store: ProgressStore = ProgressStore()) {
         self.levels = levels
         self.store = store
@@ -42,7 +46,8 @@ public final class GameController: ObservableObject {
 
         self.progress = LevelProgress(
             currentLevelIndex: safeIndex,
-            bestMovesByLevelId: loaded.bestMovesByLevelId
+            bestMovesByLevelId: loaded.bestMovesByLevelId,
+            hasCompletedOnboarding: loaded.hasCompletedOnboarding
         )
         self.levelIndex = safeIndex
         self.parsedLevel = parsed.level
@@ -160,6 +165,17 @@ public final class GameController: ObservableObject {
 
     public func showHint(_ message: String) {
         flashBanner(message)
+    }
+
+    public func completeOnboarding() {
+        guard !progress.hasCompletedOnboarding else { return }
+        progress.hasCompletedOnboarding = true
+        store.save(progress)
+    }
+
+    public func restartOnboarding() {
+        progress.hasCompletedOnboarding = false
+        selectLevel(index: 0)
     }
 
     private func recordClear(moves: Int) {

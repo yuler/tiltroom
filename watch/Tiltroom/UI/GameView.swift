@@ -7,22 +7,42 @@ public struct GameView: View {
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     @State private var showingLevels = false
+    @State private var showingSplash = true
+    @State private var wakePolicy = ScreenWakePolicy()
 
     private let gold = Color(red: 0.906, green: 0.761, blue: 0.478)
     private let bg = Color(red: 0.078, green: 0.067, blue: 0.055)
 
     public init() {}
 
+    private var shouldShowOnboarding: Bool {
+        !showingSplash
+            && !isLuminanceReduced
+            && !game.hasCompletedOnboarding
+            && game.levelIndex == 0
+            && game.mode == .playing
+            && game.moveCount == 0
+    }
+
     public var body: some View {
-        VStack(spacing: 2) {
-            headerBar
-            boardArea
-            footerBar
+        ZStack {
+            VStack(spacing: 0) {
+                headerBar
+                boardArea
+                footerBar
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(bg.ignoresSafeArea())
+
+            if showingSplash {
+                SplashOverlayView {
+                    showingSplash = false
+                    syncSensorState()
+                }
+                .transition(.opacity)
+                .zIndex(1)
+            }
         }
-        .padding(.horizontal, 4)
-        .padding(.bottom, 2)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(bg.ignoresSafeArea())
         .sheet(isPresented: $showingLevels) {
             LevelPickerView(
                 levels: game.levels,
@@ -38,6 +58,11 @@ public struct GameView: View {
                     sensor.recalibrate()
                     Haptics.recalibrated()
                     game.showHint("已归零")
+                },
+                onShowGuide: {
+                    showingLevels = false
+                    game.restartOnboarding()
+                    sensor.recalibrate()
                 }
             )
         }
@@ -58,6 +83,12 @@ public struct GameView: View {
         .onChange(of: isLuminanceReduced) { _, _ in
             syncSensorState()
         }
+        .onChange(of: game.moveCount) { _, newCount in
+            if newCount > 0 && !game.hasCompletedOnboarding {
+                game.completeOnboarding()
+                game.showHint("上手了! 也可滑动棋盘")
+            }
+        }
     }
 
     private var headerBar: some View {
@@ -67,10 +98,10 @@ public struct GameView: View {
             } label: {
                 HStack(spacing: 3) {
                     Text("\(game.currentSpec.id)")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
                         .foregroundStyle(gold)
                     Text(game.currentSpec.name)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.9))
                         .lineLimit(1)
                 }
@@ -83,10 +114,11 @@ public struct GameView: View {
             Spacer(minLength: 2)
 
             Text("\(game.moveCount)/\(game.currentSpec.par)")
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .foregroundStyle(game.moveCount <= game.currentSpec.par ? gold : .secondary)
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 6)
+        .padding(.bottom, 1)
     }
 
     private var boardArea: some View {
@@ -106,6 +138,13 @@ public struct GameView: View {
                     }
             )
 
+            if shouldShowOnboarding {
+                OnboardingOverlayView(
+                    lockedDirection: sensor.lockedDirection,
+                    sensorAvailable: sensor.isAvailable
+                )
+            }
+
             if let banner = game.statusBanner, !isLuminanceReduced {
                 Text(banner)
                     .font(.system(size: 12, weight: .semibold))
@@ -117,16 +156,17 @@ public struct GameView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(edges: .horizontal)
     }
 
     private var footerBar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 5) {
             Button {
                 game.undo()
             } label: {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 12, weight: .semibold))
-                    .frame(width: 30, height: 24)
+                    .frame(width: 28, height: 23)
                     .background(Color.white.opacity(game.canUndo ? 0.14 : 0.05), in: Capsule())
                     .foregroundStyle(game.canUndo ? .white : .white.opacity(0.3))
             }
@@ -142,13 +182,16 @@ public struct GameView: View {
             } label: {
                 Image(systemName: "arrow.counterclockwise")
                     .font(.system(size: 12, weight: .semibold))
-                    .frame(width: 30, height: 24)
+                    .frame(width: 28, height: 23)
                     .background(Color.white.opacity(0.14), in: Capsule())
                     .foregroundStyle(.white)
             }
             .buttonStyle(.plain)
         }
-        .opacity(isLuminanceReduced ? 0.35 : 1.0)
+        .padding(.horizontal, 6)
+        .padding(.top, 1)
+        .padding(.bottom, 1)
+        .opacity(isLuminanceReduced ? 0.45 : 1.0)
     }
 
     @ViewBuilder
@@ -159,7 +202,7 @@ public struct GameView: View {
             } label: {
                 Text("退一步")
                     .font(.system(size: 12, weight: .bold))
-                    .frame(maxWidth: .infinity, minHeight: 24)
+                    .frame(maxWidth: .infinity, minHeight: 23)
                     .background(gold, in: Capsule())
                     .foregroundStyle(Color(red: 0.10, green: 0.08, blue: 0.05))
             }
@@ -171,7 +214,7 @@ public struct GameView: View {
             } label: {
                 Text("\(dir.arrowSymbol) 落下")
                     .font(.system(size: 12, weight: .bold))
-                    .frame(maxWidth: .infinity, minHeight: 24)
+                    .frame(maxWidth: .infinity, minHeight: 23)
                     .background(gold, in: Capsule())
                     .foregroundStyle(Color(red: 0.10, green: 0.08, blue: 0.05))
             }
@@ -185,7 +228,7 @@ public struct GameView: View {
             } label: {
                 Text(sensor.isAvailable ? "倾腕/滑动" : "滑动棋盘")
                     .font(.system(size: 11, weight: .medium))
-                    .frame(maxWidth: .infinity, minHeight: 24)
+                    .frame(maxWidth: .infinity, minHeight: 23)
                     .background(Color.white.opacity(0.08), in: Capsule())
                     .foregroundStyle(.white.opacity(0.72))
             }
@@ -209,6 +252,10 @@ public struct GameView: View {
             return
         }
 
+        if wakePolicy.isWakeTapGuarded() {
+            return
+        }
+
         if game.mode == .dead {
             game.undo()
             return
@@ -218,6 +265,9 @@ public struct GameView: View {
     }
 
     private func fireShutter() {
+        if wakePolicy.isWakeTapGuarded() {
+            return
+        }
         if let dir = sensor.directionForShutter() {
             game.commit(dir)
         } else {
@@ -227,9 +277,13 @@ public struct GameView: View {
     }
 
     private func syncSensorState() {
-        if scenePhase == .active && !isLuminanceReduced {
-            sensor.start(recalibrate: true)
+        if scenePhase == .active && !isLuminanceReduced && !showingSplash {
+            let shouldRecalibrate = wakePolicy.markResumed()
+            sensor.start(recalibrate: shouldRecalibrate)
         } else {
+            if !showingSplash {
+                wakePolicy.markPaused(isBackground: scenePhase == .background)
+            }
             sensor.stop()
         }
     }
