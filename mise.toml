@@ -1,0 +1,36 @@
+[tools]
+bun = "latest"
+
+[tasks.dev]
+description = "Run all *:dev tasks"
+run = "mise run '*:dev'"
+
+[tasks."web:install"]
+description = "Install web dependencies"
+dir = "web"
+run = "bun install"
+
+[tasks."web:dev"]
+description = "Start Tiltroom web dev server"
+dir = "web"
+run = "bun run dev"
+
+[tasks."web:build"]
+description = "Typecheck and build Tiltroom web static site"
+dir = "web"
+run = "bun run build"
+
+[tasks."web:test"]
+description = "Run Tiltroom web unit tests"
+dir = "web"
+run = "bun run test"
+
+[tasks."web:typecheck"]
+description = "Run TypeScript typecheck for web"
+dir = "web"
+run = "bun run typecheck"
+
+[tasks."web:preview"]
+description = "Preview built Tiltroom web static site"
+dir = "web"
+run = "bun run preview"

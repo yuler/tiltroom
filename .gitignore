@@ -21,3 +21,8 @@ watch/Signing.xcconfig
 .DS_Store
 DerivedData/
 xcuserdata/
+
+# Web dependencies & build outputs
+node_modules/
+web/dist/
+*.tsbuildinfo
